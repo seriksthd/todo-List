@@ -5,26 +5,30 @@ const input = document.querySelector("input");
 
 const ul = document.getElementById("ul");
 
+const confirmModal = document.getElementById("confirmModal");
+const confirmYesButton = document.getElementById("confirmYes");
+const confirmNoButton = document.getElementById("confirmNo");
+
+let currentTodoId = null; 
+
 async function getTodos() {
   try {
     const response = await fetch(BASE_URL);
-
     const data = await response.json();
-
     renderTodos(data);
   } catch (error) {
-    throw new Error(error);
+    console.error("Ошибка при получении задач:", error);
   }
 }
 
 getTodos();
 
 async function postTodos() {
-
-  if (input.value.trim()===""){
-   alert('пажалустаб введите текст задачи.')
-   return;
+  if (input.value.trim() === "") {
+    alert("Пожалуйста, введите текст задачи.");
+    return;
   }
+
   const todo = {
     title: input.value,
     id: Date.now(),
@@ -38,11 +42,11 @@ async function postTodos() {
       },
       body: JSON.stringify(todo),
     });
-    
+
     input.value = "";
     getTodos();
   } catch (error) {
-    throw new Error(error);
+    console.error("Ошибка при добавлении задачи:", error);
   }
 }
 
@@ -53,29 +57,36 @@ form.addEventListener("submit", (e) => {
 
 function renderTodos(todos) {
   ul.innerHTML = "";
-  todos.map((element) => {
+  todos.forEach((element) => {
     const li = document.createElement("li");
     const deleteButton = document.createElement("button");
     deleteButton.innerText = "өчүрүү баскычы";
 
-    deleteButton.addEventListener("click", () => deleteTodo(element.id));
+    deleteButton.addEventListener("click", () => {
+      currentTodoId = element.id; 
+      confirmModal.style.display = "flex"; 
+    });
 
     li.innerText = element.title;
-
     li.appendChild(deleteButton);
-
     ul.append(li);
   });
 }
 
-async function deleteTodo(todoId) {
+
+confirmYesButton.addEventListener("click", async () => {
   try {
-    await fetch(`${BASE_URL}/${todoId}`, {
+    await fetch(`${BASE_URL}/${currentTodoId}`, {
       method: "DELETE",
     });
-
-    getTodos();
+    getTodos(); 
+    confirmModal.style.display = "none"; 
   } catch (error) {
-    throw new Error(error);
+    console.error("Ошибка при удалении задачи:", error);
   }
-}
+});
+
+
+confirmNoButton.addEventListener("click", () => {
+  confirmModal.style.display = "none"; 
+});
