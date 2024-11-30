@@ -1,86 +1,81 @@
-const form = document.getElementById("todo-form");
-const input = document.getElementById("todo-input");
-const todoList = document.getElementById("todo-list");
-const modal = document.getElementById("modal");
-const confirmDeleteButton = document.getElementById("confirm-delete");
-const cancelDeleteButton = document.getElementById("cancel-delete");
+const BASE_URL = "https://3e215ea4824bb5f6.mokky.dev/Tudo-List";
 
-let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-let taskToDelete = null;
+const form = document.querySelector("form");
+const input = document.querySelector("input");
 
-const addTodo = (taskValue) => {
-  tasks.push({ value: taskValue, id: Date.now(), completed: false });
-  localStorage.setItem("tasks", JSON.stringify(tasks));
-  renderTasks();
-};
+const ul = document.getElementById("ul");
 
-const deleteTask = (id) => {
-  tasks = tasks.filter((item) => item.id !== id);
-  localStorage.setItem("tasks", JSON.stringify(tasks));
-  renderTasks();
-};
+async function getTodos() {
+  try {
+    const response = await fetch(BASE_URL);
 
-const toggleTaskCompletion = (id) => {
-  tasks = tasks.map((item) => {
-    if (item.id === id) {
-      return { ...item, completed: !item.completed };
-    }
-    return item;
-  });
-  localStorage.setItem("tasks", JSON.stringify(tasks));
-  renderTasks();
-};
+    const data = await response.json();
 
-const showModal = (id) => {
-  taskToDelete = id;
-  modal.style.display = "flex";
-};
+    renderTodos(data);
+  } catch (error) {
+    throw new Error(error);
+  }
+}
 
-const hideModal = () => {
-  modal.style.display = "none";
-  taskToDelete = null;
-};
+getTodos();
+
+async function postTodos() {
+
+  if (input.value.trim()===""){
+   alert('пажалустаб введите текст задачи.')
+   return;
+  }
+  const todo = {
+    title: input.value,
+    id: Date.now(),
+  };
+
+  try {
+    await fetch(BASE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(todo),
+    });
+    
+    input.value = "";
+    getTodos();
+  } catch (error) {
+    throw new Error(error);
+  }
+}
 
 form.addEventListener("submit", (e) => {
   e.preventDefault();
-  const taskValue = input.value.trim();
-  if (taskValue) {
-    addTodo(taskValue);
-    input.value = "";
-  }
+  postTodos();
 });
 
-const renderTasks = () => {
-  todoList.innerHTML = "";
-  tasks.forEach((item) => {
-    const listItem = document.createElement("li");
-    const taskSpan = document.createElement("span");
+function renderTodos(todos) {
+  ul.innerHTML = "";
+  todos.map((element) => {
+    const li = document.createElement("li");
     const deleteButton = document.createElement("button");
+    deleteButton.innerText = "өчүрүү баскычы";
 
-    taskSpan.textContent = item.value;
-    if (item.completed) {
-      taskSpan.classList.add("completed");
-    }
+    deleteButton.addEventListener("click", () => deleteTodo(element.id));
 
-    deleteButton.textContent = "delete";
-    deleteButton.addEventListener("click", () => showModal(item.id));
+    li.innerText = element.title;
 
-    taskSpan.addEventListener("click", () => toggleTaskCompletion(item.id));
+    li.appendChild(deleteButton);
 
-    listItem.append(taskSpan, deleteButton);
-    todoList.appendChild(listItem);
+    ul.append(li);
   });
-};
+}
 
-confirmDeleteButton.addEventListener("click", () => {
-  if (taskToDelete !== null) {
-    deleteTask(taskToDelete);
-    hideModal();
+async function deleteTodo(todoId) {
+  try {
+    await fetch(`${BASE_URL}/${todoId}`, {
+      method: "DELETE",
+    });
+
+    getTodos();
+  } catch (error) {
+    throw new Error(error);
   }
-});
-
-cancelDeleteButton.addEventListener("click", () => {
-  hideModal();
-});
-
-renderTasks();
+}
